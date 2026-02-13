@@ -4,6 +4,7 @@
 #include "classes/Checkers.h"
 #include "classes/Othello.h"
 #include "classes/Connect4.h"
+#include "classes/Connect4.cpp"
 
 namespace ClassGame {
         //

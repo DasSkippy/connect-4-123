@@ -21,6 +21,8 @@ public:
     void        stopGame() override;
 
     void        updateAI() override;
+    int         minimax(std::string state, int depth, bool maximizingPlayer);
+    int         evaluateBoard(std::string state);
     bool        gameHasAI() override {return true;}
     Grid*       getGrid() override {return _grid;}
 
