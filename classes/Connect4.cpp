@@ -307,7 +307,7 @@ void Connect4::updateAI()
 
 int Connect4::minimax(std::string state, int depth, bool maximizingPlayer)
 {
-    // --- Local win checker lambda ---
+    // Local win checker lambda
     auto wins = [&](char player)
     {
         // Horizontal

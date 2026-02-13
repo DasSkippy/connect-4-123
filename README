@@ -1,0 +1,15 @@
+Sean Frederico
+CMPM 123
+
+For this assignment I implimented connect4 using a similar structure I used in the tictactoe assignment
+I made the board larger, and made it so players can only place from the top row of the board.
+
+The AI uses a minimax algorithm to decide its moves. It simulates 
+possible future board states up to a fixed depth and evaluates 
+each position to determine how favorable it is. The AI tries to 
+maximize its own score while assuming the opponent will always 
+make the best possible move. It also slightly prefers playing in 
+the center column since that generally leads to stronger 
+positions. This allows it to block immediate threats, take 
+winning moves when available, and plan several turns ahead 
+instead of playing randomly.
