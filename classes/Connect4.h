@@ -21,17 +21,24 @@ public:
     void        stopGame() override;
 
     void        updateAI() override;
-    int         minimax(std::string state, int depth, bool maximizingPlayer);
-    int         evaluateBoard(std::string state);
     bool        gameHasAI() override {return true;}
     Grid*       getGrid() override {return _grid;}
 
     bool isColumnFull(int col);
     int getLowestEmptyRow(int col);
 private:
-    Bit *       PieceForPlayer(const int playerNumber);
+    // Player numbers are 0/1, matching Game's Player objects (not HUMAN_PLAYER/AI_PLAYER constants).
+    Bit *       PieceForPlayer(int playerNumber);
     Player *    ownerAt(int index) const;
-    int         negamax(std::string& state, int depth, int playerColor);
+
+    // Negamax with alpha-beta pruning.
+    int         negamaxAlphaBeta(const std::string& state, int depth, int alpha, int beta, int playerToMove);
+    // Heuristic evaluation of a position (windows-of-4 scoring + center preference).
+    int         evaluatePosition(const std::string& state, int playerPerspective) const;
+    int         winnerFromState(const std::string& state) const;
+    bool        isDrawState(const std::string& state) const;
+    // Apply a Connect-4 drop in a column (mutates state). Returns false if column is full.
+    bool        applyMove(std::string& state, int col, int playerNumber) const;
 
     Grid*       _grid;
 };

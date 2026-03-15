@@ -1,11 +1,56 @@
-Using the provided code that can be downloaded from this github add a new class that inherits from game.cpp in the same way TicTacToe.cpp does and implement a working version of the game Connect 4. The game should be added as a fourth choice from the menu so the choices are Tic Tac Toe, Checkers, Othello and now Connect 4.
+# Connect 4 (CMPM 123)
 
-The game must be playable by both by 2 people and vs. an AI. Your implementation must check for the winning condition, and display that on the right hand side the same way the current setup does for tic-tac-toe. The stopGame() method is expected to clean up and delete any memory allocated.
+This project adds **Connect 4** as a 4th game option alongside Tic-Tac-Toe, Checkers, and Othello.
 
-Look at the new Grid.cpp class and see how it is used in Checkers.cpp for a good understanding about laying out a useable grid.
+## How to play
 
-For extra credit, when a game piece is added to the board, make it animate into place instead of just appearing in it's final spot.
+- Open the app and click **Start Connect4**.
+- To place a piece, click a square in the **top row** of the column you want to drop into.
+- The game ends when a player connects 4 horizontally, vertically, or diagonally (or the board fills).
 
-Graphic files are provided for the game pieces called yellow.png and red.png.
+## AI opponent (Negamax + Alpha-Beta)
 
-For the submission, create a new github based on the above code-base and provide a link to that along with a complete readme.md on how your implementation works.
+Connect 4 supports:
+
+- **Two-player** mode (human vs human)
+- **Vs AI** mode (human vs AI), with the AI able to play as **Player 1** or **Player 2**
+
+The AI uses a **Negamax** search with **Alpha-Beta pruning**:
+
+- The board is evaluated by scoring every possible 4-cell “window” on the board.
+- Alpha-beta pruning cuts off branches that cannot affect the final decision.
+- Moves are searched in a center-first order (`3,2,4,1,5,0,6`) to improve pruning.
+
+You can change the search depth in the **Settings** window before starting Connect 4.
+
+## Where the code lives
+
+- `classes/Connect4.h` / `classes/Connect4.cpp`: Connect 4 game implementation + Negamax AI
+- `Application.cpp`: menu button + AI settings UI (choose “Play vs AI”, AI side, and Connect 4 depth)
+
+## Build / Run
+
+This project uses CMake.
+
+### Windows (Visual Studio generator)
+
+```powershell
+cmake -S . -B build
+cmake --build build --config Release
+.\build\Release\demo.exe
+```
+
+### macOS / Linux
+
+```bash
+cmake -S . -B build
+cmake --build build -j
+./build/demo
+```
+
+## Assets
+
+Connect 4 uses:
+
+- `resources/yellow.png` (Player 1)
+- `resources/red.png` (Player 2)

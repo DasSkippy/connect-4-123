@@ -1,4 +1,6 @@
 #include "Connect4.h"
+#include <array>
+#include <limits>
 
 Connect4::Connect4()
 {
@@ -10,24 +12,24 @@ Connect4::~Connect4()
     delete _grid;
 }
 
-Bit* Connect4::PieceForPlayer(const int playerNumber) 
+Bit* Connect4::PieceForPlayer(int playerNumber) 
 {
     Bit *bit = new Bit();
 
-    bit->LoadTextureFromFile(playerNumber == AI_PLAYER ? "red.png" : "yellow.png");
-    bit->setOwner(getPlayerAt(playerNumber == AI_PLAYER ? 1 : 0));
+    bit->LoadTextureFromFile(playerNumber == 1 ? "red.png" : "yellow.png");
+    bit->setOwner(getPlayerAt(playerNumber));
     return bit;
 }
 
 void Connect4::setUpBoard()
 {
     setNumberOfPlayers(2);
-    _gameOptions.rowX = 6;
-    _gameOptions.rowY = 7;
+    _gameOptions.rowX = 7;
+    _gameOptions.rowY = 6;
     _grid->initializeSquares(80, "square.png");
 
-    if(gameHasAI()) {
-        setAIPlayer(AI_PLAYER);
+    if (_gameOptions.AIPlaying) {
+        setAIPlayer(_gameOptions.AIPlayer);
     }
 
     startGame();
@@ -55,21 +57,17 @@ bool Connect4::actionForEmptyHolder(BitHolder &holder)
         return false;
     }
 
-    Bit *bit = PieceForPlayer(getCurrentPlayer()->playerNumber() == 0 ? HUMAN_PLAYER : AI_PLAYER);
+    const int playerNumber = getCurrentPlayer()->playerNumber();
+    Bit *bit = PieceForPlayer(playerNumber);
     if (bit) {
+        // Animate the piece dropping from the top square of the chosen column.
         ChessSquare* topSquare = _grid->getSquare(col, 0);
         ChessSquare* targetSquare = _grid->getSquare(col, targetRow);
 
-        if(targetRow > 0) {
-            bit->setPosition(topSquare->getPosition());
-            bit->moveTo(targetSquare->getPosition());
-            targetSquare->setBit(bit);
-            endTurn();
-        } else {
-            bit->setPosition(targetSquare->getPosition());
-            targetSquare->setBit(bit);
-            endTurn();
-        }
+        bit->setPosition(topSquare->getPosition());
+        bit->moveTo(targetSquare->getPosition());
+        targetSquare->setBit(bit);
+        endTurn();
         return true;
     }
     return false;
@@ -252,7 +250,9 @@ void Connect4::setStateString(const std::string &s)
         int index = y*7 + x;
         int playerNumber = s[index] - '0';
         if (playerNumber) {
-            square->setBit( PieceForPlayer(playerNumber-1) );
+            Bit* bit = PieceForPlayer(playerNumber - 1);
+            bit->setPosition(square->getPosition());
+            square->setBit(bit);
         } else {
             square->setBit( nullptr );
         }
@@ -261,54 +261,69 @@ void Connect4::setStateString(const std::string &s)
 
 void Connect4::updateAI()
 {
-    std::string state = stateString();
-
-    int bestScore = -100000;
-    BitHolder* bestMove = nullptr;
-
-    for (int col = 0; col < 7; col++)
-    {
-        // Check if column has space
-        if (state[col] == '0' ||
-            state[7+col] == '0' ||
-            state[14+col] == '0' ||
-            state[21+col] == '0' ||
-            state[28+col] == '0' ||
-            state[35+col] == '0')
-        {
-            std::string newState = state;
-
-            // simulate drop for AI (player 2)
-            for (int row = 5; row >= 0; row--)
-            {
-                int index = row * 7 + col;
-                if (newState[index] == '0')
-                {
-                    newState[index] = '2';
-                    break;
-                }
-            }
-
-            int score = minimax(newState, 5, false);
-
-            if (score > bestScore)
-            {
-                bestScore = score;
-                int row = getLowestEmptyRow(col);
-                bestMove = _grid->getSquare(col, row);
-            }
-        }
+    if (!_gameOptions.AIPlaying) {
+        return;
     }
 
-    if (bestMove)
-        actionForEmptyHolder(*bestMove);
+    const int playerToMove = getCurrentPlayer()->playerNumber(); // 0 or 1
+    std::string state = stateString();
+
+    // Negamax with alpha-beta pruning. Score is always from the perspective of the side-to-move.
+    _gameOptions.AIDepthSearches = 0;
+
+    const int depth = std::max(1, _gameOptions.AIMAXDepth);
+    const int INF = 1'000'000'000;
+
+    static constexpr std::array<int, 7> kMoveOrder = {3, 2, 4, 1, 5, 0, 6};
+
+    int bestScore = std::numeric_limits<int>::min();
+    int bestCol = -1;
+    int alpha = -INF;
+    int beta = INF;
+
+    for (int col : kMoveOrder)
+    {
+        std::string child = state;
+        if (!applyMove(child, col, playerToMove)) {
+            continue;
+        }
+
+        const int score = -negamaxAlphaBeta(child, depth - 1, -beta, -alpha, 1 - playerToMove);
+        if (score > bestScore) {
+            bestScore = score;
+            bestCol = col;
+        }
+        alpha = std::max(alpha, score);
+    }
+
+    if (bestCol >= 0) {
+        actionForEmptyHolder(*_grid->getSquare(bestCol, 0));
+    }
 }
 
-
-int Connect4::minimax(std::string state, int depth, bool maximizingPlayer)
+bool Connect4::applyMove(std::string& state, int col, int playerNumber) const
 {
-    // Local win checker lambda
-    auto wins = [&](char player)
+    const char piece = static_cast<char>('1' + playerNumber);
+    for (int row = 5; row >= 0; row--)
+    {
+        const int index = row * 7 + col;
+        if (state[index] == '0')
+        {
+            state[index] = piece;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Connect4::isDrawState(const std::string& state) const
+{
+    return state.find('0') == std::string::npos;
+}
+
+int Connect4::winnerFromState(const std::string& state) const
+{
+    auto wins = [&](char player) -> bool
     {
         // Horizontal
         for (int r = 0; r < 6; r++)
@@ -349,90 +364,108 @@ int Connect4::minimax(std::string state, int depth, bool maximizingPlayer)
         return false;
     };
 
-    // --- Terminal checks ---
-    if (wins('2')) return 1000 + depth;   // AI win
-    if (wins('1')) return -1000 - depth;  // Human win
-
-    bool draw = true;
-    for (char c : state)
-        if (c == '0')
-            draw = false;
-    if (draw || depth == 0)
-        return evaluateBoard(state);
-
-    if (maximizingPlayer)
-    {
-        int maxEval = -100000;
-
-        for (int col = 0; col < 7; col++)
-        {
-            std::string newState = state;
-
-            bool valid = false;
-            for (int row = 5; row >= 0; row--)
-            {
-                int index = row * 7 + col;
-                if (newState[index] == '0')
-                {
-                    newState[index] = '2';
-                    valid = true;
-                    break;
-                }
-            }
-
-            if (!valid) continue;
-
-            int eval = minimax(newState, depth - 1, false);
-            maxEval = std::max(maxEval, eval);
-        }
-
-        return maxEval;
-    }
-    else
-    {
-        int minEval = 100000;
-
-        for (int col = 0; col < 7; col++)
-        {
-            std::string newState = state;
-
-            bool valid = false;
-            for (int row = 5; row >= 0; row--)
-            {
-                int index = row * 7 + col;
-                if (newState[index] == '0')
-                {
-                    newState[index] = '1';
-                    valid = true;
-                    break;
-                }
-            }
-
-            if (!valid) continue;
-
-            int eval = minimax(newState, depth - 1, true);
-            minEval = std::min(minEval, eval);
-        }
-
-        return minEval;
-    }
+    if (wins('1')) return 0;
+    if (wins('2')) return 1;
+    return -1;
 }
 
-
-int Connect4::evaluateBoard(std::string state)
+int Connect4::evaluatePosition(const std::string& state, int playerPerspective) const
 {
+    const char self = static_cast<char>('1' + playerPerspective);
+    const char opp = static_cast<char>('1' + (1 - playerPerspective));
+
     int score = 0;
 
     // Prefer center column
     for (int row = 0; row < 6; row++)
     {
-        if (state[row*7 + 3] == '2')
-            score += 3;
-        if (state[row*7 + 3] == '1')
-            score -= 3;
+        const char center = state[row * 7 + 3];
+        if (center == self) score += 3;
+        else if (center == opp) score -= 3;
     }
+
+    auto scoreWindow = [&](char a, char b, char c, char d) -> int
+    {
+        int selfCount = 0, oppCount = 0, emptyCount = 0;
+        const char window[4] = {a, b, c, d};
+        for (char cell : window)
+        {
+            if (cell == self) selfCount++;
+            else if (cell == opp) oppCount++;
+            else emptyCount++;
+        }
+
+        if (selfCount == 4) return 100000;
+        if (oppCount == 4) return -100000;
+
+        if (selfCount == 3 && emptyCount == 1) return 120;
+        if (selfCount == 2 && emptyCount == 2) return 12;
+        if (selfCount == 1 && emptyCount == 3) return 1;
+
+        if (oppCount == 3 && emptyCount == 1) return -140;
+        if (oppCount == 2 && emptyCount == 2) return -14;
+
+        return 0;
+    };
+
+    // Horizontal windows
+    for (int r = 0; r < 6; r++)
+        for (int c = 0; c < 4; c++)
+            score += scoreWindow(state[r*7+c], state[r*7+c+1], state[r*7+c+2], state[r*7+c+3]);
+
+    // Vertical windows
+    for (int c = 0; c < 7; c++)
+        for (int r = 0; r < 3; r++)
+            score += scoreWindow(state[r*7+c], state[(r+1)*7+c], state[(r+2)*7+c], state[(r+3)*7+c]);
+
+    // Diagonal down-right windows
+    for (int c = 0; c < 4; c++)
+        for (int r = 0; r < 3; r++)
+            score += scoreWindow(state[r*7+c], state[(r+1)*7+c+1], state[(r+2)*7+c+2], state[(r+3)*7+c+3]);
+
+    // Diagonal up-right windows
+    for (int c = 0; c < 4; c++)
+        for (int r = 3; r < 6; r++)
+            score += scoreWindow(state[r*7+c], state[(r-1)*7+c+1], state[(r-2)*7+c+2], state[(r-3)*7+c+3]);
 
     return score;
 }
 
+int Connect4::negamaxAlphaBeta(const std::string& state, int depth, int alpha, int beta, int playerToMove)
+{
+    _gameOptions.AIDepthSearches++;
+
+    const int winner = winnerFromState(state);
+    if (winner != -1)
+    {
+        const int WIN_SCORE = 1'000'000;
+        return (winner == playerToMove) ? (WIN_SCORE + depth) : (-WIN_SCORE - depth);
+    }
+
+    if (depth == 0 || isDrawState(state))
+    {
+        return evaluatePosition(state, playerToMove);
+    }
+
+    static constexpr std::array<int, 7> kMoveOrder = {3, 2, 4, 1, 5, 0, 6};
+
+    int best = std::numeric_limits<int>::min();
+
+    for (int col : kMoveOrder)
+    {
+        std::string child = state;
+        if (!applyMove(child, col, playerToMove)) {
+            continue;
+        }
+
+        const int score = -negamaxAlphaBeta(child, depth - 1, -beta, -alpha, 1 - playerToMove);
+        best = std::max(best, score);
+        alpha = std::max(alpha, score);
+        if (alpha >= beta) {
+            break; // alpha-beta prune
+        }
+    }
+
+    return best;
+}
 

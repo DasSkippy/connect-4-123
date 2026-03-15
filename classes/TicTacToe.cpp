@@ -19,8 +19,8 @@ Bit* TicTacToe::PieceForPlayer(const int playerNumber)
     // depending on playerNumber load the "x.png" or the "o.png" graphic
     Bit *bit = new Bit();
     // should possibly be cached from player class?
-    bit->LoadTextureFromFile(playerNumber == AI_PLAYER ? "o.png" : "x.png");
-    bit->setOwner(getPlayerAt(playerNumber == AI_PLAYER ? 1 : 0));
+    bit->LoadTextureFromFile(playerNumber == 1 ? "o.png" : "x.png");
+    bit->setOwner(getPlayerAt(playerNumber));
     return bit;
 }
 
@@ -31,8 +31,8 @@ void TicTacToe::setUpBoard()
     _gameOptions.rowY = 3;
     _grid->initializeSquares(80, "square.png");
 
-    if (gameHasAI()) {
-        setAIPlayer(AI_PLAYER);
+    if (_gameOptions.AIPlaying) {
+        setAIPlayer(_gameOptions.AIPlayer);
     }
 
     startGame();
@@ -46,7 +46,7 @@ bool TicTacToe::actionForEmptyHolder(BitHolder &holder)
     if (holder.bit()) {
         return false;
     }
-    Bit *bit = PieceForPlayer(getCurrentPlayer()->playerNumber() == 0 ? HUMAN_PLAYER : AI_PLAYER);
+    Bit *bit = PieceForPlayer(getCurrentPlayer()->playerNumber());
     if (bit) {
         bit->setPosition(holder.getPosition());
         holder.setBit(bit);
@@ -150,7 +150,9 @@ void TicTacToe::setStateString(const std::string &s)
         int index = y*3 + x;
         int playerNumber = s[index] - '0';
         if (playerNumber) {
-            square->setBit( PieceForPlayer(playerNumber-1) );
+            Bit* bit = PieceForPlayer(playerNumber - 1);
+            bit->setPosition(square->getPosition());
+            square->setBit(bit);
         } else {
             square->setBit( nullptr );
         }

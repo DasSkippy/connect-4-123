@@ -428,6 +428,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="C:\Users\seanf\Documents\GitHub\connect-4-123\classes\TicTacToe.cpp" />
     <ClCompile Include="C:\Users\seanf\Documents\GitHub\connect-4-123\classes\Checkers.cpp" />
     <ClCompile Include="C:\Users\seanf\Documents\GitHub\connect-4-123\classes\Othello.cpp" />
+    <ClCompile Include="C:\Users\seanf\Documents\GitHub\connect-4-123\classes\Connect4.cpp" />
     <ClCompile Include="C:\Users\seanf\Documents\GitHub\connect-4-123\imgui\imgui_impl_dx11.cpp" />
     <ClCompile Include="C:\Users\seanf\Documents\GitHub\connect-4-123\main_win32.cpp" />
     <ClCompile Include="C:\Users\seanf\Documents\GitHub\connect-4-123\imgui\imgui_impl_win32.cpp" />

@@ -49,6 +49,9 @@
     <ClCompile Include="C:\Users\seanf\Documents\GitHub\connect-4-123\classes\Othello.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\seanf\Documents\GitHub\connect-4-123\classes\Connect4.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\seanf\Documents\GitHub\connect-4-123\imgui\imgui_impl_dx11.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

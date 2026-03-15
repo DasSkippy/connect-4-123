@@ -6,7 +6,7 @@
 
 Game::Game()
 {
-	_gameOptions.AIPlayer = false;
+	_gameOptions.AIPlayer = 1;
 	_gameOptions.AIPlaying = false;
 	_gameOptions.currentTurnNo = 0;
 	_gameOptions.gameNumber = -1;
@@ -15,6 +15,7 @@ Game::Game()
 	_gameOptions.rowY = 0;
 	_gameOptions.score = 0;
 	_gameOptions.AIDepthSearches = 0;
+	_gameOptions.AIMAXDepth = 7;
 	_gameOptions.AIvsAI = false;
 
 	_table = nullptr;
@@ -52,6 +53,16 @@ Game::~Game()
 
 void Game::setNumberOfPlayers(unsigned int n)
 {
+	for (auto &_turn : _turns)
+	{
+		delete _turn;
+	}
+	_turns.clear();
+
+	for (auto &_player : _players)
+	{
+		delete _player;
+	}
 	_players.clear();
 	for (unsigned int i = 1; i <= n; i++)
 	{
@@ -67,15 +78,18 @@ void Game::setNumberOfPlayers(unsigned int n)
 	_gameOptions.numberOfPlayers = n;
 
 	Turn *turn = Turn::initStartOfGame(this);
-	_turns.clear();
 	_turns.push_back(turn);
 }
 
 void Game::setAIPlayer(unsigned int playerNumber)
 {
+	for (auto *player : _players)
+	{
+		player->setAIPlayer(false);
+	}
 	_players.at(playerNumber)->setAIPlayer(true);
 	_gameOptions.AIPlayer = playerNumber;
-	_gameOptions.AIPlayer = true;
+	_gameOptions.AIPlaying = true;
 }
 
 void Game::startGame()
